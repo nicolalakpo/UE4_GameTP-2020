@@ -24,10 +24,10 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(Replicated, EditDefaultsOnly, BlueprintReadOnly)
 		float TotalHealth;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(Replicated, BlueprintReadOnly)
 		float CurrentHealth; 
 
 	UFUNCTION()

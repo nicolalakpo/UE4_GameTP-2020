@@ -2,6 +2,7 @@
 
 
 #include "HealthComponent.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values for this component's properties
 UHealthComponent::UHealthComponent()
@@ -14,7 +15,7 @@ UHealthComponent::UHealthComponent()
 
 	TotalHealth = 100.f;
 
-	CurrentHealth = TotalHealth;
+	SetIsReplicated(true);
 }
 
 
@@ -22,15 +23,17 @@ UHealthComponent::UHealthComponent()
 void UHealthComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	 
 
-	AActor* MyOwner = GetOwner();
-	if (MyOwner)
+	if (GetOwnerRole() == ROLE_Authority) //Como es un Actor Component no puedo conseguir mi Role, tengo que conseguir el Role de mi dueño por eso uso GetOwnerRole
 	{
-		MyOwner->OnTakeAnyDamage.AddDynamic(this, &UHealthComponent::TakeAnyDamage); 
+		AActor* MyOwner = GetOwner();
+		if (MyOwner)
+		{
+			MyOwner->OnTakeAnyDamage.AddDynamic(this, &UHealthComponent::TakeAnyDamage);
+		}
 	}
 
-	
+	CurrentHealth = TotalHealth;
 }
 
 void UHealthComponent::TakeAnyDamage(AActor * DamagedActor, float Damage, const UDamageType * DamageType, AController * InstigatedBy, AActor * DamageCauser)
@@ -41,8 +44,15 @@ void UHealthComponent::TakeAnyDamage(AActor * DamagedActor, float Damage, const 
 
 	UE_LOG(LogTemp, Warning, TEXT("Health Changed to: %s"), *FString::SanitizeFloat(CurrentHealth));
 
-
-	OnHealthChanged.Broadcast(this, CurrentHealth, Damage, DamageType, InstigatedBy, DamageCauser); //Cuando recibo daño, hago un broadcast al macro para poder usarlo en BP o donde sea
+	if (GetOwnerRole() == ROLE_Authority)
+		OnHealthChanged.Broadcast(this, CurrentHealth, Damage, DamageType, InstigatedBy, DamageCauser); //Cuando recibo daño, hago un broadcast al macro para poder usarlo en BP o donde sea
 }
 
 
+void UHealthComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, CurrentHealth);
+	DOREPLIFETIME(ThisClass, TotalHealth);
+}

@@ -19,12 +19,19 @@ public:
 
 
 	UPROPERTY()
-		FVector_NetQuantize TraceTo;
+		FVector_NetQuantize NetTraceTo;
 
 	UPROPERTY()
-		FRotator VFXFinalRotator;
+		FRotator NetVFXFinalRotator;
 	UPROPERTY()
 		bool bIsBloodHit;
+
+	UPROPERTY()
+		float NetWeaponDmg;
+	UPROPERTY()
+		float NetPlayerScore;
+	UPROPERTY()
+		AActor* NetWeaponOwner;
 };
 
 

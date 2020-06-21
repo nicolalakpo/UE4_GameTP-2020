@@ -12,8 +12,8 @@
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "HealthComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Weapon_Hitscan.h"
 #include "Net/UnrealNetwork.h"
+#include "Weapon_Hitscan.h"
 
 // Sets default values
 ATPCharacter::ATPCharacter()
@@ -194,18 +194,17 @@ void ATPCharacter::OnHealthChanged(UHealthComponent* HealtComp, float Health, fl
 		//i ded
 		bDied = true;
 		//GetMovementComponent()->StopMovementImmediately();
-		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-
-
 		Mesh3P->SetAllBodiesSimulatePhysics(true);
 		Mesh3P->SetSimulatePhysics(true);
 		Mesh3P->WakeAllRigidBodies();
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		CurrentHSWeapon->SetHidden(true);
 
 		LifeCount--;
 
 		DetachFromControllerPendingDestroy();
-		SetLifeSpan(15.0f);
+		SetLifeSpan(5.0f);
 	}
 }
 
@@ -221,4 +220,5 @@ void ATPCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ThisClass, CurrentHSWeapon);
+	DOREPLIFETIME(ThisClass, bDied);
 }

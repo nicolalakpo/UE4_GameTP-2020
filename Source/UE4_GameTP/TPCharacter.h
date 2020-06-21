@@ -10,7 +10,6 @@ class UInputComponent;
 class AWeapon_Hitscan;
 class UHealthComponent;
 
-
 UCLASS()
 class UE4_GAMETP_API ATPCharacter : public ACharacter
 {
@@ -84,7 +83,9 @@ protected:
 	UFUNCTION()
 		void OnHealthChanged(UHealthComponent* HealtComp, float Health, float HealthChange, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 
-	bool bDied;
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		bool bDied;
+
 	int LifeCount;
 
 public:

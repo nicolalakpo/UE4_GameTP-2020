@@ -28,6 +28,9 @@ AWeapon_Hitscan::AWeapon_Hitscan()
 	ScoreTorso = 75.0f;
 
 	SetReplicates(true);
+
+	NetUpdateFrequency = 66.0f;
+	MinNetUpdateFrequency = 33.0f;
 }
 
 void AWeapon_Hitscan::Fire()
@@ -48,7 +51,6 @@ void AWeapon_Hitscan::Fire()
 
 		MyOwner->GetActorEyesViewPoint(EyeLocation, EyeRotation);
 
-
 		FVector ShotDirection = EyeRotation.Vector();
 
 		FVector TraceEnd = (EyeLocation + (ShotDirection * 10000));
@@ -64,41 +66,57 @@ void AWeapon_Hitscan::Fire()
 		FHitResult Hit;
 		bool bHitFlesh = false;
 		FRotator TraceRot;
+
+		EPhysicalSurface SurfaceType = EPhysicalSurface(SurfaceType_Default);
+		bHitFlesh = false;
+		float WeaponDamage = BaseDamage;
+		HitScanTrace.NetTraceTo = TraceEnd;
+		HitScanTrace.NetPlayerScore = 0.0f;
+
 		if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, TraceEnd, ECC_Visibility, QueryParams))
 		{
 			AActor* HitActor = Hit.GetActor();
 
-
 			// Consigo el Phys material de lo que le pego
-			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
+			SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
 			// Consigo pos y roto el VFX de sangre
 			TraceEndPosition = Hit.ImpactPoint;
 			TraceRot = Hit.ImpactNormal.Rotation();
 			TraceRot.Pitch -= 90.0f;
 
-			float WeaponDamage = BaseDamage;
 			switch (SurfaceType)
 			{
-			case SurfaceType_Default:
-				bHitFlesh = false;
-				break;
 			case SurfaceType1: //Torso
 				WeaponDamage *= DmgMultiplierTorso;
 				bHitFlesh = true;
 				PlayBloodEffect(TraceEndPosition, TraceRot, bHitFlesh);
-				SendScoreUpdate(ScoreTorso, MyOwner);
+				if (Role == ROLE_Authority)
+				{
+					HitScanTrace.NetPlayerScore = ScoreTorso;
+					HitScanTrace.NetWeaponOwner = MyOwner;
+				}
 				break;
 			case SurfaceType2: //Head
 				WeaponDamage *= DmgMultiplierHead;
 				bHitFlesh = true;
 				PlayBloodEffect(TraceEndPosition, TraceRot, bHitFlesh);
-				SendScoreUpdate(ScoreHead, MyOwner);
+				if (Role == ROLE_Authority)
+				{
+					HitScanTrace.NetWeaponOwner = MyOwner;
+					HitScanTrace.NetPlayerScore = ScoreHead;
+				}
+				//SendScoreUpdate(ScoreHead, MyOwner);
 				break;
 			case SurfaceType3: //Limbs
 				WeaponDamage *= DmgMultiplierLimbs;
 				bHitFlesh = true;
 				PlayBloodEffect(TraceEndPosition, TraceRot, bHitFlesh);
-				SendScoreUpdate(ScoreLimbs, MyOwner);
+				if (Role == ROLE_Authority)
+				{
+					HitScanTrace.NetWeaponOwner = MyOwner;
+					HitScanTrace.NetPlayerScore = ScoreLimbs;
+				}
+				//SendScoreUpdate(ScoreLimbs, MyOwner);
 				break;
 
 			default:
@@ -112,8 +130,8 @@ void AWeapon_Hitscan::Fire()
 
 		if (Role == ROLE_Authority)
 		{
-			HitScanTrace.TraceTo = TraceEndPosition;
-			HitScanTrace.VFXFinalRotator = TraceRot;
+			HitScanTrace.NetTraceTo = TraceEndPosition;
+			HitScanTrace.NetVFXFinalRotator = TraceRot;
 			HitScanTrace.bIsBloodHit = bHitFlesh;
 		}
 	}
@@ -171,9 +189,12 @@ bool AWeapon_Hitscan::ServerFire_Validate()
 
 void AWeapon_Hitscan::OnRep_HitscanTrace()
 {
-	PlayShootingEffects(HitScanTrace.TraceTo);
 
-	PlayBloodEffect(HitScanTrace.TraceTo, HitScanTrace.VFXFinalRotator, HitScanTrace.bIsBloodHit);
+	PlayShootingEffects(HitScanTrace.NetTraceTo);
+
+	PlayBloodEffect(HitScanTrace.NetTraceTo, HitScanTrace.NetVFXFinalRotator, HitScanTrace.bIsBloodHit);
+	SendScoreUpdate(HitScanTrace.NetPlayerScore, HitScanTrace.NetWeaponOwner);
+
 }
 
 
